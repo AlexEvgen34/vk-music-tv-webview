@@ -10,7 +10,7 @@
         android:required="true"/>
 
     <application
-        android:theme="@android:style/Theme.Leanback">
+    android:theme="@style/Theme.Leanback">
 
         <activity
             android:name=".MainActivity"
