@@ -16,18 +16,27 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Проверка: можно ли создать WebView (DEXP / Android TV 8)
-        if (!isWebViewUsable()) {
+        // ⚠️ ЖЁСТКАЯ проверка WebView ТОЛЬКО для Android TV
+        if (isAndroidTv() && !isWebViewUsable()) {
             openInExternalBrowser()
             return
         }
 
+        // На смартфоне — всегда пробуем WebView
         setContentView(R.layout.activity_main)
         initWebView()
     }
 
     /**
-     * Проверяем, не падает ли WebView при создании
+     * Определяем, Android TV это или нет
+     */
+    private fun isAndroidTv(): Boolean {
+        return packageManager.hasSystemFeature("android.software.leanback")
+    }
+
+    /**
+     * Проверка: не падает ли WebView при создании
+     * (критично для DEXP / Android TV 8)
      */
     private fun isWebViewUsable(): Boolean {
         return try {
@@ -40,7 +49,8 @@ class MainActivity : Activity() {
     }
 
     /**
-     * Инициализация WebView с фиксом ERR_CACHE_MISS
+     * Инициализация WebView
+     * + фикс ERR_CACHE_MISS
      */
     private fun initWebView() {
         val webView = findViewById<WebView>(R.id.webview)
@@ -55,11 +65,11 @@ class MainActivity : Activity() {
             // Медиа без жестов (важно для TV)
             mediaPlaybackRequiresUserGesture = false
 
-            // User-Agent для Android TV
+            // User-Agent для TV-версии сайтов
             userAgentString = userAgentString + " AndroidTV"
         }
 
-        // Чистим всё перед загрузкой
+        // Чистим всё перед первой загрузкой
         webView.clearCache(true)
         webView.clearHistory()
 
@@ -77,8 +87,10 @@ class MainActivity : Activity() {
                 request: WebResourceRequest,
                 error: WebResourceError
             ) {
-                // Если WebView снова сломался — fallback в браузер
-                openInExternalBrowser()
+                // ❗ fallback ТОЛЬКО на Android TV
+                if (isAndroidTv()) {
+                    openInExternalBrowser()
+                }
             }
         }
 
@@ -91,7 +103,7 @@ class MainActivity : Activity() {
     private fun openInExternalBrowser() {
         Toast.makeText(
             this,
-            "WebView недоступен. Открываем VK Music в браузере.",
+            "WebView недоступен.\nОткрываем VK Music в браузере.",
             Toast.LENGTH_LONG
         ).show()
 
