@@ -49,16 +49,44 @@ class MainActivity : Activity() {
     }
 
     private fun initWebView() {
-        val webView = findViewById<WebView>(R.id.webview)
+    val webView = findViewById<WebView>(R.id.webview)
 
-        webView.settings.apply {
-            javaScriptEnabled = true
-            domStorageEnabled = true
-            mediaPlaybackRequiresUserGesture = false
-            userAgentString += " AndroidTV"
+    webView.settings.apply {
+        javaScriptEnabled = true
+        domStorageEnabled = true
+
+        // 🔥 КРИТИЧНО для ERR_CACHE_MISS
+        cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
+        setAppCacheEnabled(false)
+
+        // Разрешаем мультимедиа
+        mediaPlaybackRequiresUserGesture = false
+
+        // TV User-Agent
+        userAgentString = userAgentString + " AndroidTV"
+    }
+
+    webView.webViewClient = object : WebViewClient() {
+        override fun shouldOverrideUrlLoading(
+            view: WebView?,
+            request: android.webkit.WebResourceRequest?
+        ): Boolean {
+            return false
         }
 
-        webView.webViewClient = WebViewClient()
-        webView.loadUrl("https://m.vk.com/audio")
+        override fun onReceivedError(
+            view: WebView?,
+            request: android.webkit.WebResourceRequest?,
+            error: android.webkit.WebResourceError?
+        ) {
+            // fallback если снова ошибка
+            openInExternalBrowser()
+        }
     }
+
+    // ❗ грузим ЧИСТЫЙ URL без истории
+    webView.clearCache(true)
+    webView.clearHistory()
+
+    webView.loadUrl("https://m.vk.com/audio")
 }
