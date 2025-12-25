@@ -1,14 +1,14 @@
 package com.example.vkmusictv
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,7 +36,7 @@ class MainActivity : AppCompatActivity() {
     private fun openInExternalBrowser() {
         Toast.makeText(
             this,
-            "WebView недоступен.\nОткрываем VK Music в браузере.",
+            "WebView недоступен. Открываем VK Music в браузере.",
             Toast.LENGTH_LONG
         ).show()
 
@@ -44,7 +44,6 @@ class MainActivity : AppCompatActivity() {
             Intent.ACTION_VIEW,
             Uri.parse("https://m.vk.com/audio")
         )
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
         finish()
     }
