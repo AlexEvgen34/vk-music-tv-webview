@@ -6,7 +6,8 @@
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
-        android:theme="@style/Theme.Leanback">
+        android:theme="@style/Theme.Leanback"
+        android:hardwareAccelerated="false">
 
         <activity
             android:name=".MainActivity"
@@ -27,5 +28,4 @@
         </activity>
 
     </application>
-
 </manifest>
