@@ -4,6 +4,9 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
@@ -13,7 +16,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Проверка WebView (DEXP / Android TV 8)
+        // Проверяем, можно ли вообще использовать WebView
         if (!isWebViewUsable()) {
             openInExternalBrowser()
             return
@@ -23,6 +26,9 @@ class MainActivity : Activity() {
         initWebView()
     }
 
+    /**
+     * Проверка: не падает ли WebView при создании (DEXP / RTM8)
+     */
     private fun isWebViewUsable(): Boolean {
         return try {
             val test = WebView(this)
@@ -33,6 +39,56 @@ class MainActivity : Activity() {
         }
     }
 
+    /**
+     * Инициализация WebView с фиксом ERR_CACHE_MISS
+     */
+    private fun initWebView() {
+        val webView = findViewById<WebView>(R.id.webview)
+
+        webView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+
+            // 🔥 КРИТИЧНО: фиксим ERR_CACHE_MISS
+            cacheMode = WebSettings.LOAD_NO_CACHE
+            setAppCacheEnabled(false)
+
+            // Медиа без жестов (важно для TV)
+            mediaPlaybackRequiresUserGesture = false
+
+            // User-Agent для TV
+            userAgentString = userAgentString + " AndroidTV"
+        }
+
+        // Чистим всё перед загрузкой
+        webView.clearCache(true)
+        webView.clearHistory()
+
+        webView.webViewClient = object : WebViewClient() {
+
+            override fun shouldOverrideUrlLoading(
+                view: WebView,
+                request: WebResourceRequest
+            ): Boolean {
+                return false
+            }
+
+            override fun onReceivedError(
+                view: WebView,
+                request: WebResourceRequest,
+                error: WebResourceError
+            ) {
+                // Если WebView снова сломался — уходим в браузер
+                openInExternalBrowser()
+            }
+        }
+
+        webView.loadUrl("https://m.vk.com/audio")
+    }
+
+    /**
+     * Fallback: открываем VK Music во внешнем браузере
+     */
     private fun openInExternalBrowser() {
         Toast.makeText(
             this,
@@ -47,46 +103,4 @@ class MainActivity : Activity() {
         startActivity(intent)
         finish()
     }
-
-    private fun initWebView() {
-    val webView = findViewById<WebView>(R.id.webview)
-
-    webView.settings.apply {
-        javaScriptEnabled = true
-        domStorageEnabled = true
-
-        // 🔥 КРИТИЧНО для ERR_CACHE_MISS
-        cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
-        setAppCacheEnabled(false)
-
-        // Разрешаем мультимедиа
-        mediaPlaybackRequiresUserGesture = false
-
-        // TV User-Agent
-        userAgentString = userAgentString + " AndroidTV"
-    }
-
-    webView.webViewClient = object : WebViewClient() {
-        override fun shouldOverrideUrlLoading(
-            view: WebView?,
-            request: android.webkit.WebResourceRequest?
-        ): Boolean {
-            return false
-        }
-
-        override fun onReceivedError(
-            view: WebView?,
-            request: android.webkit.WebResourceRequest?,
-            error: android.webkit.WebResourceError?
-        ) {
-            // fallback если снова ошибка
-            openInExternalBrowser()
-        }
-    }
-
-    // ❗ грузим ЧИСТЫЙ URL без истории
-    webView.clearCache(true)
-    webView.clearHistory()
-
-    webView.loadUrl("https://m.vk.com/audio")
 }
