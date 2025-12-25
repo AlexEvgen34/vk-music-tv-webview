@@ -13,16 +13,19 @@ import android.widget.Toast
 
 class MainActivity : Activity() {
 
+    // Чтобы не зациклиться на ERR_CACHE_MISS
+    private var cacheMissReloaded = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ⚠️ ЖЁСТКАЯ проверка WebView ТОЛЬКО для Android TV
+        // Жёсткая проверка WebView ТОЛЬКО для Android TV
         if (isAndroidTv() && !isWebViewUsable()) {
             openInExternalBrowser()
             return
         }
 
-        // На смартфоне — всегда пробуем WebView
+        // На смартфоне всегда пробуем WebView
         setContentView(R.layout.activity_main)
         initWebView()
     }
@@ -35,7 +38,7 @@ class MainActivity : Activity() {
     }
 
     /**
-     * Проверка: не падает ли WebView при создании
+     * Проверяем, не падает ли WebView при создании
      * (критично для DEXP / Android TV 8)
      */
     private fun isWebViewUsable(): Boolean {
@@ -50,7 +53,7 @@ class MainActivity : Activity() {
 
     /**
      * Инициализация WebView
-     * + фикс ERR_CACHE_MISS
+     * + корректная обработка ERR_CACHE_MISS
      */
     private fun initWebView() {
         val webView = findViewById<WebView>(R.id.webview)
@@ -59,17 +62,17 @@ class MainActivity : Activity() {
             javaScriptEnabled = true
             domStorageEnabled = true
 
-            // 🔥 Фикс ERR_CACHE_MISS
+            // Не используем кэш — меньше проблем на TV и первом запуске
             cacheMode = WebSettings.LOAD_NO_CACHE
 
             // Медиа без жестов (важно для TV)
             mediaPlaybackRequiresUserGesture = false
 
-            // User-Agent для TV-версии сайтов
+            // User-Agent для TV-версий сайтов
             userAgentString = userAgentString + " AndroidTV"
         }
 
-        // Чистим всё перед первой загрузкой
+        // Чистим перед первым заходом
         webView.clearCache(true)
         webView.clearHistory()
 
@@ -82,28 +85,29 @@ class MainActivity : Activity() {
                 return false
             }
 
-            private var cacheMissReloaded = false
+            override fun onReceivedError(
+                view: WebView,
+                request: WebResourceRequest,
+                error: WebResourceError
+            ) {
+                // Обрабатываем ТОЛЬКО основную страницу
+                if (!request.isForMainFrame) return
 
-override fun onReceivedError(
-    view: WebView,
-    request: WebResourceRequest,
-    error: WebResourceError
-) {
-    // Обрабатываем ТОЛЬКО основную страницу
-    if (!request.isForMainFrame) return
+                // ERR_CACHE_MISS — НЕ фатальная ошибка (нормально для VK)
+                if (
+                    error.errorCode == WebViewClient.ERROR_CACHE_MISS &&
+                    !cacheMissReloaded
+                ) {
+                    cacheMissReloaded = true
+                    view.post { view.reload() }
+                    return
+                }
 
-    // ERR_CACHE_MISS = НЕ фатальная ошибка
-    if (error.errorCode == ERROR_CACHE_MISS && !cacheMissReloaded) {
-        cacheMissReloaded = true
-        view.post { view.reload() }
-        return
-    }
-
-    // Только на Android TV делаем fallback
-    if (isAndroidTv()) {
-        openInExternalBrowser()
-    }
-}
+                // Реальный fallback — ТОЛЬКО на Android TV
+                if (isAndroidTv()) {
+                    openInExternalBrowser()
+                }
+            }
         }
 
         webView.loadUrl("https://m.vk.com/audio")
