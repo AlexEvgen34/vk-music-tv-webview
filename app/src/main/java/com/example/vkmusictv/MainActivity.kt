@@ -16,7 +16,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Проверяем, можно ли вообще использовать WebView
+        // Проверка: можно ли создать WebView (DEXP / Android TV 8)
         if (!isWebViewUsable()) {
             openInExternalBrowser()
             return
@@ -27,7 +27,7 @@ class MainActivity : Activity() {
     }
 
     /**
-     * Проверка: не падает ли WebView при создании (DEXP / RTM8)
+     * Проверяем, не падает ли WebView при создании
      */
     private fun isWebViewUsable(): Boolean {
         return try {
@@ -49,14 +49,13 @@ class MainActivity : Activity() {
             javaScriptEnabled = true
             domStorageEnabled = true
 
-            // 🔥 КРИТИЧНО: фиксим ERR_CACHE_MISS
+            // 🔥 Фикс ERR_CACHE_MISS
             cacheMode = WebSettings.LOAD_NO_CACHE
-            setAppCacheEnabled(false)
 
             // Медиа без жестов (важно для TV)
             mediaPlaybackRequiresUserGesture = false
 
-            // User-Agent для TV
+            // User-Agent для Android TV
             userAgentString = userAgentString + " AndroidTV"
         }
 
@@ -78,7 +77,7 @@ class MainActivity : Activity() {
                 request: WebResourceRequest,
                 error: WebResourceError
             ) {
-                // Если WebView снова сломался — уходим в браузер
+                // Если WebView снова сломался — fallback в браузер
                 openInExternalBrowser()
             }
         }
