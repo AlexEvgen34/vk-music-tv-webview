@@ -82,16 +82,28 @@ class MainActivity : Activity() {
                 return false
             }
 
-            override fun onReceivedError(
-                view: WebView,
-                request: WebResourceRequest,
-                error: WebResourceError
-            ) {
-                // ❗ fallback ТОЛЬКО на Android TV
-                if (isAndroidTv()) {
-                    openInExternalBrowser()
-                }
-            }
+            private var cacheMissReloaded = false
+
+override fun onReceivedError(
+    view: WebView,
+    request: WebResourceRequest,
+    error: WebResourceError
+) {
+    // Обрабатываем ТОЛЬКО основную страницу
+    if (!request.isForMainFrame) return
+
+    // ERR_CACHE_MISS = НЕ фатальная ошибка
+    if (error.errorCode == ERROR_CACHE_MISS && !cacheMissReloaded) {
+        cacheMissReloaded = true
+        view.post { view.reload() }
+        return
+    }
+
+    // Только на Android TV делаем fallback
+    if (isAndroidTv()) {
+        openInExternalBrowser()
+    }
+}
         }
 
         webView.loadUrl("https://m.vk.com/audio")
